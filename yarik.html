@@ -17,7 +17,6 @@
             justify-content: center;
             height: 100vh;
         }
-
         #ui-container {
             position: absolute;
             top: 20px;
@@ -31,7 +30,6 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
             max-width: 320px;
         }
-
         h1 {
             font-size: 16px;
             margin: 0 0 10px 0;
@@ -40,7 +38,6 @@
             border-bottom: 1px solid #333;
             padding-bottom: 5px;
         }
-
         .toggle-btn {
             background: #222;
             border: 1px solid #555;
@@ -54,48 +51,61 @@
             transition: all 0.2s;
             margin-top: 10px;
         }
-
         .toggle-btn:hover {
             background: #333;
         }
-
         .toggle-btn.active {
             background: #ff0040;
             color: white;
             border-color: #ff0040;
             box-shadow: 0 0 15px rgba(255, 0, 64, 0.4);
         }
-
         .legend {
             margin-top: 15px;
             font-size: 12px;
             display: grid;
             gap: 5px;
         }
-
         .legend-item {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
         .indicator {
             width: 10px;
             height: 10px;
             border-radius: 50%;
         }
+        .art-btn {
+            display: block;
+            margin-top: 20px;
+            padding: 10px 0;
+            background: transparent;
+            border: 1px dashed #444;
+            color: #888;
+            text-align: center;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+        .art-btn:hover {
+            border-color: #bc13fe; 
+            color: #bc13fe;
+            background: rgba(188, 19, 254, 0.05);
+            box-shadow: 0 0 15px rgba(188, 19, 254, 0.2);
+        }
     </style>
 </head>
 <body>
-
     <div id="ui-container">
         <h1>QUANTUM INTERFERENCE</h1>
         <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">
             Görsel Fizik Simülasyonu v3.0
         </div>
-        
         <button id="observerBtn" class="toggle-btn" onclick="toggleObserver()">GÖZLEMCİ: KAPALI</button>
-        
         <div class="legend">
             <div class="legend-item">
                 <div class="indicator" style="background: #00ffc8;"></div>
@@ -105,36 +115,26 @@
         <p style="font-size: 10px; color: #666; margin-top: 10px;">
             Ekranı temizlemek için 'R' tuşuna bas.
         </p>
+        <a href="s_yarik.html" class="art-btn">
+            ✨ SANATSALLAŞTIR
+        </a>
     </div>
-
     <script>
-        // --- AYARLAR ---
         let particles = [];
         let wallX, screenX;
         let slitY1, slitY2;
         let slitHeight = 8; 
         let observerActive = false;
-        
-        // Ekran verisi (Histogram)
         let screenBins = [];
         let maxBinVal = 0;
-
-        // --- FİZİK SABİTLERİ (DÜZELTİLDİ) ---
         const PARTICLE_SPEED = 7;
-        
-        // Dalga boyunu arttırdık. Bu, girişim desenindeki çizgilerin arasını açar.
-        // Böylece siyah boşluklar daha belirgin olur.
         const WAVELENGTH = 24; 
-        
-        // Yarıklar arası mesafeyi biraz kıstık.
         const SLIT_DISTANCE = 90; 
-
         function setup() {
             createCanvas(windowWidth, windowHeight);
             initDimensions();
             screenBins = new Array(height).fill(0);
         }
-
         function initDimensions() {
             wallX = width * 0.25; 
             screenX = width * 0.95;
@@ -142,34 +142,23 @@
             slitY1 = center - SLIT_DISTANCE / 2;
             slitY2 = center + SLIT_DISTANCE / 2;
         }
-
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
             initDimensions();
             screenBins = new Array(height).fill(0);
             maxBinVal = 0;
         }
-
         function draw() {
             background(0); 
-
-            // 1. Ortamı Çiz
             drawEnvironment();
-
-            // 2. Gözlemciyi Çiz
             if(observerActive) drawObserver();
-
-            // 3. Parçacık Üretimi (Hızlandırılmış)
             for(let k=0; k<10; k++) {
                 particles.push(new Particle());
             }
-
-            // 4. Parçacık Döngüsü
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.update();
                 p.show();
-
                 if (p.pos.x >= screenX) {
                     registerHit(p.pos.y);
                     particles.splice(i, 1);
@@ -178,94 +167,59 @@
                     particles.splice(i, 1);
                 }
             }
-
-            // 5. Sonuç Desenini Çiz
             drawScreenPattern();
         }
-
         function registerHit(y) {
             let idx = floor(y);
-            // Biraz bulanıklık ekleyerek histogramın daha yumuşak dolmasını sağlayalım
-            // Bu sayede çizgiler daha net görünür
             if (idx >= 1 && idx < height - 1) {
                 screenBins[idx] += 1.0;
                 screenBins[idx-1] += 0.5;
                 screenBins[idx+1] += 0.5;
-                
                 if(screenBins[idx] > maxBinVal) maxBinVal = screenBins[idx];
             }
         }
-
-        // --- PARÇACIK SINIFI ---
         class Particle {
             constructor() {
                 this.pos = createVector(0, height/2);
-                
-                // Hedefleme konisi
                 let targetY = random(slitY1 - 60, slitY2 + 60);
                 let targetX = wallX;
-                
                 let dir = createVector(targetX - this.pos.x, targetY - this.pos.y);
                 dir.normalize();
                 dir.mult(PARTICLE_SPEED);
-                
                 this.vel = dir;
                 this.passedSlit = false;
                 this.dead = false;
                 this.color = color(0, 255, 200); 
                 this.size = 2;
             }
-
             update() {
                 this.pos.add(this.vel);
-
-                // DUVAR KONTROLÜ
                 if (!this.passedSlit && !this.dead && this.pos.x >= wallX) {
-                    
                     let hitSlit1 = abs(this.pos.y - slitY1) <= slitHeight;
                     let hitSlit2 = abs(this.pos.y - slitY2) <= slitHeight;
-
                     if (hitSlit1 || hitSlit2) {
                         this.passedSlit = true;
-                        
-                        // --- KRİTİK DÜZELTME: KONUM HİZALAMA ---
-                        // Parçacık yarıktan geçtiği an, Y konumunu yarığın tam merkezine (veya çok yakınına) çekiyoruz.
-                        // Bu, "Parçacık" modunda iki ayrı net bant oluşmasını sağlar.
                         this.pos.y = hitSlit1 ? slitY1 + random(-2,2) : slitY2 + random(-2,2);
-                        this.pos.x = wallX + 2; // Duvarın hemen sağına koy
-
+                        this.pos.x = wallX + 2; 
                         let slitIndex = hitSlit1 ? 1 : 2;
                         this.applyQuantumEffect(slitIndex);
-                        
                     } else {
                         this.dead = true; 
                     }
                 }
             }
-
             applyQuantumEffect(slitIndex) {
                 if (observerActive) {
-                    // --- PARÇACIK MODU (Gözlemci Açık) ---
-                    // Kırmızı renk
                     this.color = color(255, 0, 64);
-                    
-                    // Saçılma çok az olmalı ki iki ayrı bant görelim
-                    // Gaussian saçılmasını azalttım (0.05 -> 0.025)
                     this.vel = createVector(PARTICLE_SPEED, 0);
                     this.vel.rotate(randomGaussian(0, 0.025)); 
-
                 } else {
-                    // --- DALGA MODU (Gözlemci Kapalı) ---
-                    // Girişim deseni
                     this.color = color(0, 255, 200, 150);
-                    
-                    // Young Girişim Formülü
                     let angle = calculateInterferenceAngle();
                     this.vel = createVector(PARTICLE_SPEED, 0);
                     this.vel.rotate(angle);
                 }
             }
-
             show() {
                 if(this.dead) return;
                 noStroke();
@@ -273,63 +227,43 @@
                 ellipse(this.pos.x, this.pos.y, this.size);
             }
         }
-
-        // --- FİZİK MOTORU ---
         function calculateInterferenceAngle() {
             let found = false;
             let theta = 0;
-            
-            // Maksimum tarama açısını sınırladım, böylece performans artar ve merkez odaklı olur
             let maxAngle = PI/3.5;
-
             while(!found) {
                 theta = random(-maxAngle, maxAngle); 
-                
-                // 1. Girişim (Interference)
-                // WAVELENGTH değeri arttığı için beta daha yavaş değişir -> Saçaklar genişler
                 let beta = (PI * SLIT_DISTANCE * sin(theta)) / WAVELENGTH;
                 let interference = pow(cos(beta), 2);
-
-                // 2. Kırınım (Diffraction)
                 let alpha = (PI * slitHeight * sin(theta)) / WAVELENGTH;
                 let diffraction = 1;
                 if (alpha !== 0) diffraction = pow(sin(alpha) / alpha, 2);
-
-                // Olasılığı biraz daha keskinleştirmek için karesini alabiliriz (kontrast artırır)
                 let totalProb = interference * diffraction;
-
-                // Rejection Sampling
                 if (random(1) < totalProb) {
                     found = true;
                 }
             }
             return theta;
         }
-
         function drawEnvironment() {
             stroke(80);
             strokeWeight(3);
-            
             line(wallX, 0, wallX, slitY1 - slitHeight);
             line(wallX, slitY1 + slitHeight, wallX, slitY2 - slitHeight);
             line(wallX, slitY2 + slitHeight, wallX, height);
-            
             stroke(observerActive ? '#ff0040' : '#00ffc8');
             strokeWeight(1);
             noFill();
             rect(wallX - 2, slitY1 - slitHeight, 4, slitHeight*2);
             rect(wallX - 2, slitY2 - slitHeight, 4, slitHeight*2);
-
             stroke(40);
             line(screenX, 0, screenX, height);
         }
-
         function drawObserver() {
             push();
             translate(wallX - 30, height/2);
             stroke(255, 0, 64);
             noFill();
-            
             beginShape();
             vertex(-15, 0);
             bezierVertex(-5, -10, 5, -10, 15, 0);
@@ -337,45 +271,34 @@
             endShape();
             fill(255, 0, 64);
             circle(0,0,6);
-            
             stroke(255, 0, 64, 100);
             line(15, 0, 30, -SLIT_DISTANCE/2);
             line(15, 0, 30, SLIT_DISTANCE/2);
             pop();
         }
-
         function drawScreenPattern() {
             noStroke();
             let normalization = maxBinVal > 0 ? maxBinVal : 1;
-
-            // Her piksel için çizim yaparsak daha pürüzsüz görünür
             for (let y = 0; y < height; y++) {
                 let intensity = screenBins[y];
                 if (intensity > 0) {
-                    // Yoğunluk görselleştirmesini biraz kısalttık, ekrana sığsın
                     let barWidth = map(intensity, 0, normalization, 0, 150);
-                    
                     if (observerActive) {
                         fill(255, 20, 80, 220); 
                     } else {
-                        // Girişim deseni için biraz daha parlak renk
                         fill(0, 255, 200, 220);
                     }
-                    
                     rect(screenX, y, barWidth, 1);
                 }
             }
         }
-
         function toggleObserver() {
             observerActive = !observerActive;
             screenBins = new Array(height).fill(0);
             maxBinVal = 0;
-            
             let btn = document.getElementById('observerBtn');
             let status = document.getElementById('statusText');
             let indicator = document.querySelector('.indicator');
-
             if(observerActive) {
                 btn.innerText = "GÖZLEMCİ: AÇIK";
                 btn.classList.add('active');
@@ -390,7 +313,6 @@
                 indicator.style.background = "#00ffc8";
             }
         }
-
         function keyPressed() {
             if (key === 'r' || key === 'R') {
                 screenBins = new Array(height).fill(0);
