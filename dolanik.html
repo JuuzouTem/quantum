@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Görünmez İp: Kuantum Sanatı</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510; 
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+        }
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+            z-index: 100;
+            pointer-events: none; 
+        }
+        h1 { font-size: 18px; margin: 0 0 10px 0; color: #00d2ff; text-shadow: 0 0 10px #00d2ff; }
+        p { font-size: 12px; line-height: 1.5; color: #ccc; }
+        .status { margin-top: 10px; font-weight: bold; color: #ff00de; }
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        #quantum-string {
+            stroke: url(#gradient);
+            stroke-width: 4;
+            stroke-linecap: round;
+            fill: none;
+            filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.8));
+            transition: stroke 0.5s;
+        }
+        .particle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 24px;
+            transition: transform 0.2s, background-color 0.5s, box-shadow 0.5s;
+        }
+        .particle:active { cursor: grabbing; transform: scale(1.1); }
+        .superposition {
+            background: radial-gradient(circle, #fff, #333);
+            animation: quantumFlux 0.1s infinite;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            color: transparent;
+        }
+        .spin-up {
+            background: radial-gradient(circle, #00d2ff, #005f73);
+            box-shadow: 0 0 30px #00d2ff;
+            color: white;
+            border: 2px solid white;
+        }
+        .spin-down {
+            background: radial-gradient(circle, #ff0055, #75002b);
+            box-shadow: 0 0 30px #ff0055;
+            color: white;
+            border: 2px solid white;
+        }
+        #reset-btn {
+            position: absolute;
+            bottom: 30px;
+            padding: 10px 30px;
+            background: transparent;
+            border: 2px solid #00d2ff;
+            color: #00d2ff;
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 100;
+            border-radius: 30px;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #reset-btn:hover {
+            background: #00d2ff;
+            color: #000;
+            box-shadow: 0 0 20px #00d2ff;
+        }
+        @keyframes quantumFlux {
+            0% { transform: scale(1) translate(1px, 1px); opacity: 0.8; }
+            50% { transform: scale(1.02) translate(-1px, -1px); opacity: 1; }
+            100% { transform: scale(1) translate(0, 0); opacity: 0.9; }
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-panel">
+        <h1>Kuantum Dolanıklık</h1>
+        <p>İki parçacık birbirine "görünmez bir iple" bağlıdır. Şu an <strong>Süperpozisyon</strong> durumundalar (aynı anda hem yazı hem tura).</p>
+        <p>Parçacıkları sürükleyerek mesafeyi test et.</p>
+        <p>Gerçekliği çökertmek için parçacıklardan <strong>herhangi birine tıkla</strong>.</p>
+        <div class="status" id="status-text">DURUM: BELİRSİZ (Dalga Fonksiyonu)</div>
+    </div>
+    <svg>
+        <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#00d2ff;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ff0055;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <path id="quantum-string" d="" />
+    </svg>
+    <div id="p1" class="particle superposition" style="top: 50%; left: 30%;">?</div>
+    <div id="p2" class="particle superposition" style="top: 50%; left: 70%;">?</div>
+    <button id="reset-btn">Yeniden Dolanıkla</button>
+    <script>
+        const p1 = document.getElementById('p1');
+        const p2 = document.getElementById('p2');
+        const path = document.getElementById('quantum-string');
+        const statusText = document.getElementById('status-text');
+        const resetBtn = document.getElementById('reset-btn');
+        let isEntangled = true; 
+        let isDragging = false;
+        function updateString() {
+            const r1 = p1.getBoundingClientRect();
+            const r2 = p2.getBoundingClientRect();
+            const x1 = r1.left + r1.width / 2;
+            const y1 = r1.top + r1.height / 2;
+            const x2 = r2.left + r2.width / 2;
+            const y2 = r2.top + r2.height / 2;
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            const tension = isEntangled ? (Math.random() * 50 - 25) : 0;
+            const d = `M ${x1} ${y1} Q ${midX} ${midY + tension} ${x2} ${y2}`;
+            path.setAttribute('d', d);
+            requestAnimationFrame(updateString);
+        }
+        updateString();
+        function makeDraggable(el) {
+            let offsetX, offsetY;
+            el.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offsetX = e.clientX - el.getBoundingClientRect().left;
+                offsetY = e.clientY - el.getBoundingClientRect().top;
+                el.style.cursor = 'grabbing';
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                if(el.matches(':active')) { 
+                    el.style.left = `${e.clientX - offsetX}px`;
+                    el.style.top = `${e.clientY - offsetY}px`;
+                }
+            });
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                el.style.cursor = 'grab';
+            });
+        }
+        makeDraggable(p1);
+        makeDraggable(p2);
+        function measure(clickedParticle, otherParticle) {
+            if (!isEntangled) return; 
+            isEntangled = false; 
+            const outcome = Math.random() > 0.5 ? 'UP' : 'DOWN';
+            clickedParticle.classList.remove('superposition');
+            otherParticle.classList.remove('superposition');
+            if (outcome === 'UP') {
+                clickedParticle.classList.add('spin-up'); 
+                clickedParticle.innerHTML = "↑";
+                otherParticle.classList.add('spin-down'); 
+                otherParticle.innerHTML = "↓";
+            } else {
+                clickedParticle.classList.add('spin-down'); 
+                clickedParticle.innerHTML = "↓";
+                otherParticle.classList.add('spin-up'); 
+                otherParticle.innerHTML = "↑";
+            }
+            statusText.innerHTML = "DURUM: ÇÖKTÜ! <br>Bilgi anında iletildi.";
+            statusText.style.color = "#00d2ff";
+        }
+        p1.addEventListener('click', () => measure(p1, p2));
+        p2.addEventListener('click', () => measure(p2, p1));
+        resetBtn.addEventListener('click', () => {
+            isEntangled = true;
+            [p1, p2].forEach(p => {
+                p.className = 'particle superposition'; 
+                p.innerHTML = "?";
+            });
+            statusText.innerHTML = "DURUM: BELİRSİZ (Dalga Fonksiyonu)";
+            statusText.style.color = "#ff00de";
+        });
+    </script>
+</body>
+</html>

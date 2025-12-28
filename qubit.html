@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qubitlerin Dansı: 0 ve 1'in Ötesi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            display: flex;
+        }
+        .side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 40px;
+        }
+        .classical-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: #000;
+            padding: 10px;
+            border: 2px solid white;
+        }
+        .quantum-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border: 2px solid;
+            border-image: linear-gradient(45deg, #f00, #00f) 1;
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+        }
+        .desc {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 80%;
+            background: rgba(0,0,0,0.7);
+            padding: 5px;
+        }
+        #separator {
+            position: absolute;
+            left: 50%;
+            height: 100%;
+            width: 2px;
+            background: white;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-layer">
+        <div class="side">
+            <div class="classical-title">KLASİK BİT</div>
+            <div class="desc">
+                Sadece 0 veya 1.<br>
+                Kesin, Köşeli, Sınırlı.<br>
+                (Siyah / Beyaz)
+            </div>
+        </div>
+        <div id="separator"></div>
+        <div class="side">
+            <div class="quantum-title">QUBIT</div>
+            <div class="desc">
+                0 ve 1'in sonsuz karışımı.<br>
+                Akışkan, Küresel, Renkli.<br>
+                (Süperpozisyon)
+            </div>
+        </div>
+    </div>
+    <script>
+        function setup() {
+            createCanvas(windowWidth, windowHeight, WEBGL);
+            colorMode(HSB, 360, 100, 100, 100);
+            noStroke();
+        }
+        function draw() {
+            background(0);
+            ambientLight(100);
+            pointLight(255, 255, 255, 0, 0, 200);
+            push();
+            translate(-width / 4, 0, 0); 
+            drawClassicalWorld();
+            pop();
+            push();
+            translate(width / 4, 0, 0);
+            drawQuantumWorld();
+            pop();
+        }
+        function drawClassicalWorld() {
+            let gridSize = 40;
+            let rows = 10;
+            let cols = 10;
+            rectMode(CENTER);
+            translate(- (cols * gridSize) / 2, - (rows * gridSize) / 2);
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    push();
+                    translate(i * gridSize, j * gridSize, 0);
+                    let flicker = floor(frameCount / 10 + i + j);
+                    let state = (flicker * 9301 + 49297) % 233280;
+                    let isOne = state % 2 === 0;
+                    if (isOne) {
+                        fill(0, 0, 100); 
+                    } else {
+                        fill(0, 0, 10); 
+                    }
+                    stroke(50); 
+                    strokeWeight(1);
+                    box(gridSize - 5); 
+                    pop();
+                }
+            }
+        }
+        function drawQuantumWorld() {
+            rotateY(frameCount * 0.01);
+            rotateX(frameCount * 0.005);
+            noFill();
+            strokeWeight(1);
+            stroke(200, 50, 100, 30); 
+            sphere(180);
+            let theta = frameCount * 0.02; 
+            let phi = frameCount * 0.013;  
+            let r = 180;
+            let x = r * sin(theta) * cos(phi);
+            let y = r * sin(theta) * sin(phi);
+            let z = r * cos(theta);
+            let hueVal = map(sin(theta)+cos(phi), -2, 2, 0, 360);
+            stroke(hueVal, 80, 100);
+            strokeWeight(4);
+            line(0, 0, 0, x, y, z);
+            push();
+            translate(x, y, z);
+            noStroke();
+            fill(hueVal, 90, 100);
+            sphere(15);
+            fill(hueVal, 90, 100, 30);
+            sphere(30);
+            pop();
+            noStroke();
+            fill(hueVal, 60, 100, 10); 
+            sphere(100);
+        }
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>

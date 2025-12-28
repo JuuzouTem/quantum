@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuantum Tünelleme Sanatı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden; 
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+        h1 {
+            font-size: 18px;
+            margin-top: 0;
+            color: #00f7ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .legend {
+            font-size: 11px;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+        .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>Kuantum Tünelleme</h1>
+        <div class="slider-group">
+            <label for="wallWidth">Bariyer Kalınlığı (Duvar)</label>
+            <input type="range" id="wallWidth" min="10" max="200" value="50">
+        </div>
+        <div class="slider-group">
+            <label for="particleEnergy">Parçacık Enerjisi (Hız)</label>
+            <input type="range" id="particleEnergy" min="2" max="10" value="4">
+        </div>
+        <div class="legend">
+            <div><span class="dot" style="background:#fff"></span>Normal Parçacık</div>
+            <div><span class="dot" style="background:#ff3333"></span>Yansıyan (Enerji Yetmedi)</div>
+            <div><span class="dot" style="background:#ffd700; box-shadow: 0 0 5px gold;"></span>Tünelleyen (Başarılı)</div>
+        </div>
+        <div style="margin-top:10px; font-size:10px; color:#555;">
+            "İmkansız, sadece düşük olasılıktır."
+        </div>
+    </div>
+    <script>
+        let particles = [];
+        let barrierX; 
+        let barrierW; 
+        let baseSpeed; 
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            barrierX = width / 2;
+            for (let i = 0; i < 100; i++) {
+                particles.push(new Particle(random(0, barrierX - 100)));
+            }
+        }
+        function draw() {
+            background(5, 5, 10, 50);
+            barrierW = parseInt(document.getElementById('wallWidth').value);
+            baseSpeed = parseInt(document.getElementById('particleEnergy').value);
+            drawBarrier();
+            if (frameCount % 5 === 0) {
+                particles.push(new Particle(0));
+            }
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.show();
+                if (p.isDead()) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        function drawBarrier() {
+            noStroke();
+            fill(0, 255, 255, 10); 
+            rect(barrierX, 0, barrierW, height);
+            fill(0, 255, 255, 20);
+            rect(barrierX + 5, 0, barrierW - 10, height);
+            stroke(0, 200, 255);
+            strokeWeight(2);
+            noFill();
+            rect(barrierX, 0, barrierW, height);
+            stroke(0, 255, 255, 50);
+            strokeWeight(1);
+            for(let y = 0; y < height; y+=20) {
+                line(barrierX, y + (frameCount % 20), barrierX + barrierW, y + (frameCount % 20));
+            }
+        }
+        class Particle {
+            constructor(x) {
+                this.pos = createVector(x, random(height));
+                this.vel = createVector(baseSpeed + random(-0.5, 0.5), 0); 
+                this.acc = createVector(0, 0);
+                this.size = random(2, 4);
+                this.color = color(255, 255, 255); 
+                this.tunneled = false;
+                this.reflected = false;
+                this.history = []; 
+            }
+            update() {
+                if (!this.reflected) {
+                    this.vel.setMag(baseSpeed); 
+                }
+                this.pos.add(this.vel);
+                this.history.push(this.pos.copy());
+                if (this.history.length > 10) {
+                    this.history.shift();
+                }
+                if (!this.tunneled && !this.reflected && 
+                    this.pos.x + this.size/2 >= barrierX && 
+                    this.pos.x < barrierX + barrierW) {
+                    this.attemptTunneling();
+                }
+            }
+            attemptTunneling() {
+                let probability = Math.exp(-barrierW / (baseSpeed * 5)); 
+                let diceRoll = random(0, 1);
+                if (diceRoll < probability) {
+                    this.tunneled = true;
+                    this.pos.x = barrierX + barrierW + 5; 
+                    this.color = color(255, 215, 0); 
+                } else {
+                    this.reflected = true;
+                    this.vel.x *= -1; 
+                    this.color = color(255, 50, 50, 150);
+                }
+            }
+            show() {
+                noStroke();
+                for (let i = 0; i < this.history.length; i++) {
+                    let pos = this.history[i];
+                    let alpha = map(i, 0, this.history.length, 0, 255);
+                    fill(red(this.color), green(this.color), blue(this.color), alpha * 0.5);
+                    ellipse(pos.x, pos.y, this.size * (i/5));
+                }
+                fill(this.color);
+                if (this.tunneled) {
+                    drawingContext.shadowBlur = 15;
+                    drawingContext.shadowColor = 'gold';
+                } else {
+                    drawingContext.shadowBlur = 0;
+                }
+                ellipse(this.pos.x, this.pos.y, this.size * 2);
+                drawingContext.shadowBlur = 0;
+            }
+            isDead() {
+                return (this.pos.x < 0 || this.pos.x > width + 100);
+            }
+        }
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            barrierX = width / 2;
+        }
+    </script>
+</body>
+</html>

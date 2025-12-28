@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schrödinger'in Pikselleri: Kuantum Sanatı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111; 
+            color: #ddd;
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #canvas-container {
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.2); 
+            border: 1px solid #333;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 30px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none; 
+        }
+        h1 { margin: 0 0 10px 0; font-size: 1.5rem; color: #0ff; }
+        p { margin: 5px 0; font-size: 0.9rem; }
+        .highlight { color: #f0f; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="info-panel">
+        <h1>Schrödinger'in Pikselleri</h1>
+        <p>Pikseller şu an <span class="highlight">Süperpozisyon</span> halinde (Hem 0 hem 1).</p>
+        <p>Gerçekliği yaratmak için farenizi (Gözlemci) piksellerin üzerinde gezdirin.</p>
+        <p>Dalga fonksiyonunu çökertin.</p>
+    </div>
+    <script>
+        const GRID_SIZE = 40; 
+        let cols, rows;
+        let quantumPixels = []; 
+        class QuantumPixel {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.isObserved = false; 
+                this.collapsedValue = 0; 
+            }
+            display() {
+                stroke(30); 
+                if (this.isObserved) {
+                    fill(this.collapsedValue);
+                } else {
+                    fill(random(255)); 
+                    if (random(1) > 0.8) {
+                        fill(100, 0, 255, 150);
+                    }
+                }
+                rect(this.x, this.y, GRID_SIZE, GRID_SIZE);
+            }
+            measure(mx, my) {
+                if (this.isObserved) return;
+                if (mx > this.x && mx < this.x + GRID_SIZE &&
+                    my > this.y && my < this.y + GRID_SIZE) {
+                    this.isObserved = true;
+                    this.collapsedValue = random(1) > 0.5 ? 255 : 0;
+                }
+            }
+        }
+        function setup() {
+            let cnv = createCanvas(600, 400);
+            cnv.parent('canvas-container');
+            cols = width / GRID_SIZE;
+            rows = height / GRID_SIZE;
+            for (let i = 0; i < cols; i++) {
+                quantumPixels[i] = [];
+                for (let j = 0; j < rows; j++) {
+                    quantumPixels[i][j] = new QuantumPixel(i * GRID_SIZE, j * GRID_SIZE);
+                }
+            }
+        }
+        function draw() {
+            background(0);
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    quantumPixels[i][j].measure(mouseX, mouseY);
+                    quantumPixels[i][j].display();
+                }
+            }
+        }
+        function windowResized() {
+        }
+    </script>
+</body>
+</html>

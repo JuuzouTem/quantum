@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Heisenberg Belirsizlik İlkesi Simülasyonu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #ui-container {
+            position: absolute;
+            bottom: 30px;
+            width: 80%;
+            text-align: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+        input[type=range] {
+            width: 100%;
+            margin: 15px 0;
+            accent-color: #00ffff;
+        }
+        h1 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        p {
+            font-size: 0.9rem;
+            color: #aaa;
+            line-height: 1.4;
+        }
+        .status {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .highlight {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-container">
+        <h1>Heisenberg Belirsizlik İlkesi</h1>
+        <p>Aşağıdaki çubuğu kaydırarak "Hız" ve "Konum" arasındaki ticareti gözlemleyin.</p>
+        <input type="range" id="uncertaintySlider" min="0" max="100" value="50">
+        <div class="status">
+            <span id="posText">KONUM: <span class="highlight">Bulanık</span></span>
+            <span id="momText">HIZ (MOMENTUM): <span class="highlight">Bulanık</span></span>
+        </div>
+        <p id="description" style="margin-top:10px; font-style:italic; color:#00ffff;">Denge Durumu...</p>
+    </div>
+    <script>
+        let particles = [];
+        const numParticles = 300;
+        let slider;
+        let posLabel, momLabel, descLabel;
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            slider = document.getElementById('uncertaintySlider');
+            posLabel = document.getElementById('posText');
+            momLabel = document.getElementById('momText');
+            descLabel = document.getElementById('description');
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+        function draw() {
+            background(5, 5, 5, 50);
+            let val = slider.value / 100;
+            updateUI(val);
+            let centerX = width / 2;
+            let centerY = height / 2;
+            let positionLimit = map(val, 0, 1, 20, width); 
+            let velocityRandomness = map(val, 0, 1, 50, 0.5); 
+            for (let p of particles) {
+                p.update(val, centerX, centerY, positionLimit, velocityRandomness);
+                p.display();
+            }
+            noFill();
+            stroke(255, 255, 255, 20);
+            ellipse(centerX, centerY, positionLimit, positionLimit);
+        }
+        class Particle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(0, 0);
+                this.color = color(0, 255, 255);
+                this.size = random(2, 5);
+                this.angle = random(TWO_PI); 
+            }
+            update(val, cx, cy, limit, chaos) {
+                if (val < 0.5) {
+                    let target = createVector(cx, cy);
+                    let dir = p5.Vector.sub(target, this.pos);
+                    dir.normalize();
+                    dir.mult(0.5 * (1-val)); 
+                    this.vel.add(dir);
+                    this.vel.x += random(-chaos, chaos);
+                    this.vel.y += random(-chaos, chaos);
+                    this.pos.add(this.vel);
+                    let chaoticColor = color(255, 50, 50); 
+                    let calmColor = color(0, 255, 255); 
+                    this.color = lerpColor(chaoticColor, calmColor, val * 2);
+                    let d = dist(this.pos.x, this.pos.y, cx, cy);
+                    if (d > limit/2) {
+                        this.pos = p5.Vector.random2D().mult(random(limit/2)).add(createVector(cx, cy));
+                    }
+                    this.vel.limit(chaos);
+                } 
+                else {
+                    this.angle += 0.05;
+                    this.vel.x = 2; 
+                    this.vel.y = sin(this.angle + this.pos.x * 0.01) * 2; 
+                    this.pos.add(this.vel);
+                    if (this.pos.x > width) this.pos.x = 0;
+                    if (this.pos.x < 0) this.pos.x = width;
+                    if(random(1) < 0.01) this.pos.y = random(height);
+                    this.color = color(0, 255, 255);
+                }
+            }
+            display() {
+                noStroke();
+                fill(this.color);
+                drawingContext.shadowBlur = 10;
+                drawingContext.shadowColor = this.color;
+                ellipse(this.pos.x, this.pos.y, this.size);
+                drawingContext.shadowBlur = 0;
+            }
+        }
+        function updateUI(val) {
+            if (val < 0.2) {
+                posLabel.innerHTML = `KONUM: <span class="highlight" style="color:#0f0">KESİN</span> (Δx ↓)`;
+                momLabel.innerHTML = `HIZ: <span class="highlight" style="color:#f00">BELİRSİZ</span> (Δp ↑)`;
+                descLabel.innerText = "Parçacığın yerini biliyorsun ama o kadar titriyor ki nereye gideceği meçhul. (Yüksek Enerji/Kaos)";
+            } else if (val > 0.8) {
+                posLabel.innerHTML = `KONUM: <span class="highlight" style="color:#f00">BELİRSİZ</span> (Δx ↑)`;
+                momLabel.innerHTML = `HIZ: <span class="highlight" style="color:#0f0">KESİN</span> (Δp ↓)`;
+                descLabel.innerText = "Parçacığın nasıl hareket ettiğini (dalga yapısını) biliyorsun ama uzayın her yerine yayıldı. Nerede bu?";
+            } else {
+                posLabel.innerHTML = `KONUM: <span class="highlight">Dengeli</span>`;
+                momLabel.innerHTML = `HIZ: <span class="highlight">Dengeli</span>`;
+                descLabel.innerText = "Hem konumdan hem hızdan biraz feragat ediliyor.";
+            }
+        }
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>

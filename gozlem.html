@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gözlemci Etkisi: Kuantum Sanatı</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+        }
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-left: 4px solid #00f2ff;
+            border-radius: 5px;
+            pointer-events: none; 
+            max-width: 400px;
+            user-select: none;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+            color: #00f2ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #ddd;
+        }
+        .status {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .status span {
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        .quantum-wave {
+            color: #ff0055;
+            text-shadow: 0 0 10px #ff0055;
+        }
+        .particle-state {
+            color: #00f2ff;
+            text-shadow: 0 0 10px #00f2ff;
+        }
+        #instruction {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            opacity: 0.7;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+<div id="canvas-container">
+    <div id="info-panel">
+        <h1>Gözlemci Etkisi</h1>
+        <p>Kuantum dünyasında nesneler, gözlemlenene kadar bir "olasılık dalgası" halindedir. Onlara baktığınızda (ölçüm yaptığınızda) tek bir gerçekliğe "çökerler".</p>
+        <div class="status" id="status-text">Durum: <span class="quantum-wave">Gözlemci Yok (Dalga)</span></div>
+    </div>
+    <div id="instruction">Fareyi hareket ettirerek (veya ekrana dokunarak) sistemi gözlemleyin.</div>
+    <canvas id="quantumCanvas"></canvas>
+</div>
+<script>
+    const canvas = document.getElementById('quantumCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status-text');
+    let width, height;
+    let particles = [];
+    let isObserving = false;
+    let mouse = { x: null, y: null };
+    let timeout;
+    function resetObservationTimer() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            isObserving = false;
+            updateStatus();
+        }, 1000); 
+    }
+    window.addEventListener('mousemove', (e) => {
+        isObserving = true;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        updateStatus();
+        resetObservationTimer();
+    });
+    window.addEventListener('touchstart', (e) => {
+        isObserving = true;
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+        updateStatus();
+        resetObservationTimer();
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+        e.preventDefault(); 
+        isObserving = true;
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+        resetObservationTimer();
+    }, { passive: false });
+    window.addEventListener('touchend', () => {
+    });
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initParticles();
+    }
+    function updateStatus() {
+        if (isObserving) {
+            statusText.innerHTML = 'Durum: <span class="particle-state">GÖZLEMLENİYOR (Parçacık)</span>';
+        } else {
+            statusText.innerHTML = 'Durum: <span class="quantum-wave">GÖZLEMCİ YOK (Dalga)</span>';
+        }
+    }
+    class Particle {
+        constructor(x, y) {
+            this.targetX = x; 
+            this.targetY = y;
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.angle = Math.random() * Math.PI * 2;
+            this.velocity = 0.02 + Math.random() * 0.05; 
+            this.size = 2;
+            this.color = '#fff'; 
+        }
+        update(time) {
+            if (isObserving) {
+                let dx = this.targetX - this.x;
+                let dy = this.targetY - this.y;
+                this.x += dx * 0.1; 
+                this.y += dy * 0.1;
+                this.color = '#00f2ff'; 
+                this.size = 3; 
+            } else {
+                this.x += Math.sin(this.angle + time) * 2;
+                this.y += Math.cos(this.angle + (time * 0.5)) * 2;
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+                this.angle += this.velocity;
+                this.color = `rgba(255, 0, 85, ${0.4 + Math.sin(time) * 0.3})`; 
+                this.size = 2; 
+            }
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+    function initParticles() {
+        particles = [];
+        let gap = 30; 
+        if (width > 2000) gap = 50; 
+        if (width > 3000) gap = 60; 
+        for (let x = 0; x < width; x += gap) {
+            for (let y = 0; y < height; y += gap) {
+                particles.push(new Particle(x, y));
+            }
+        }
+    }
+    let time = 0;
+    function animate() {
+        if(isObserving) {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
+        } else {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)'; 
+        }
+        ctx.fillRect(0, 0, width, height);
+        time += 0.05;
+        particles.forEach(p => {
+            p.update(time);
+            p.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    animate();
+</script>
+</body>
+</html>
