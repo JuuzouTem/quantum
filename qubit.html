@@ -4,168 +4,249 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Qubitlerin Dansı: 0 ve 1'in Ötesi</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
         body {
             margin: 0;
-            padding: 0;
-            background-color: #000;
-            color: white;
-            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            height: 100vh;
         }
-        #ui-layer {
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-right: 1px solid #333;
+        }
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 10px;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        p.description {
+            max-width: 300px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #e1e1e1;
+            margin-bottom: 30px;
+            z-index: 10;
+            min-height: 50px;
+        }
+        .controls {
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #classic-box {
+            width: 200px;
+            height: 200px;
+            background-color: #000;
+            border: 2px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            font-family: 'Orbitron', sans-serif;
+            transition: none; 
+        }
+        .switch-btn {
+            padding: 10px 30px;
+            background: #333;
+            color: white;
+            border: 1px solid #fff;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+        }
+        .switch-btn:hover { background: #555; }
+        #quantum-canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; 
-            display: flex;
+            z-index: 0;
         }
-        .side {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            padding-top: 40px;
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 250px;
+            height: 6px;
+            background: linear-gradient(90deg, #ff0055, #00ffff);
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
         }
-        .classical-title {
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 15px #fff;
+            cursor: pointer;
+            margin-top: -7px;
+        }
+        .state-display {
+            font-family: 'Orbitron', sans-serif;
             font-size: 1.5rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            background: #000;
-            padding: 10px;
-            border: 2px solid white;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0,255,255,0.7);
         }
-        .quantum-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border: 2px solid;
-            border-image: linear-gradient(45deg, #f00, #00f) 1;
-            color: #fff;
-            text-shadow: 0 0 10px #fff;
-        }
-        .desc {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            text-align: center;
-            max-width: 80%;
-            background: rgba(0,0,0,0.7);
-            padding: 5px;
-        }
-        #separator {
+        .overlay {
             position: absolute;
-            left: 50%;
-            height: 100%;
-            width: 2px;
-            background: white;
-            z-index: 10;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            font-size: 0.8rem;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <div id="ui-layer">
-        <div class="side">
-            <div class="classical-title">KLASİK BİT</div>
-            <div class="desc">
-                Sadece 0 veya 1.<br>
-                Kesin, Köşeli, Sınırlı.<br>
-                (Siyah / Beyaz)
-            </div>
-        </div>
-        <div id="separator"></div>
-        <div class="side">
-            <div class="quantum-title">QUBIT</div>
-            <div class="desc">
-                0 ve 1'in sonsuz karışımı.<br>
-                Akışkan, Küresel, Renkli.<br>
-                (Süperpozisyon)
-            </div>
+    <div class="container" style="background-color: #1a1a1a;">
+        <h2>Klasik Bit</h2>
+        <p class="description">Sadece Siyah (0) veya Beyaz (1). Arası yoktur. Kesinlik ve sınırlılık.</p>
+        <div id="classic-box" data-state="0">0</div>
+        <div class="controls">
+            <button class="switch-btn" onclick="toggleClassic()">Durumu Değiştir</button>
         </div>
     </div>
+    <div class="container" style="background-color: #000;">
+        <h2>Qubit (Kuantum)</h2>
+        <p class="description">Süperpozisyon. 0 ve 1 aynı anda, sonsuz bir dans halinde. Parçacıklar olasılıklarla titreşir.</p>
+        <div id="quantum-canvas"></div> 
+        <div class="controls">
+            <div class="state-display">Süperpozisyon: <span id="prob-text">50% | 50%</span></div>
+            <input type="range" id="q-slider" min="0" max="1" step="0.01" value="0.5">
+            <p style="font-size: 0.8rem; color: #e1e1e1;">Kaydırıcıyı hareket ettirerek dansı yönet</p>
+        </div>
+    </div>
+    <div class="overlay">Qubitlerin Dansı: Görsel Kodlama Deneyi</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        function setup() {
-            createCanvas(windowWidth, windowHeight, WEBGL);
-            colorMode(HSB, 360, 100, 100, 100);
-            noStroke();
-        }
-        function draw() {
-            background(0);
-            ambientLight(100);
-            pointLight(255, 255, 255, 0, 0, 200);
-            push();
-            translate(-width / 4, 0, 0); 
-            drawClassicalWorld();
-            pop();
-            push();
-            translate(width / 4, 0, 0);
-            drawQuantumWorld();
-            pop();
-        }
-        function drawClassicalWorld() {
-            let gridSize = 40;
-            let rows = 10;
-            let cols = 10;
-            rectMode(CENTER);
-            translate(- (cols * gridSize) / 2, - (rows * gridSize) / 2);
-            for (let i = 0; i < cols; i++) {
-                for (let j = 0; j < rows; j++) {
-                    push();
-                    translate(i * gridSize, j * gridSize, 0);
-                    let flicker = floor(frameCount / 10 + i + j);
-                    let state = (flicker * 9301 + 49297) % 233280;
-                    let isOne = state % 2 === 0;
-                    if (isOne) {
-                        fill(0, 0, 100); 
-                    } else {
-                        fill(0, 0, 10); 
-                    }
-                    stroke(50); 
-                    strokeWeight(1);
-                    box(gridSize - 5); 
-                    pop();
-                }
+        const classicBox = document.getElementById('classic-box');
+        function toggleClassic() {
+            const currentState = classicBox.getAttribute('data-state');
+            if (currentState === "0") {
+                classicBox.style.backgroundColor = "#fff";
+                classicBox.style.color = "#000";
+                classicBox.innerText = "1";
+                classicBox.setAttribute('data-state', "1");
+            } else {
+                classicBox.style.backgroundColor = "#000";
+                classicBox.style.color = "#fff";
+                classicBox.innerText = "0";
+                classicBox.setAttribute('data-state', "0");
             }
         }
-        function drawQuantumWorld() {
-            rotateY(frameCount * 0.01);
-            rotateX(frameCount * 0.005);
-            noFill();
-            strokeWeight(1);
-            stroke(200, 50, 100, 30); 
-            sphere(180);
-            let theta = frameCount * 0.02; 
-            let phi = frameCount * 0.013;  
-            let r = 180;
-            let x = r * sin(theta) * cos(phi);
-            let y = r * sin(theta) * sin(phi);
-            let z = r * cos(theta);
-            let hueVal = map(sin(theta)+cos(phi), -2, 2, 0, 360);
-            stroke(hueVal, 80, 100);
-            strokeWeight(4);
-            line(0, 0, 0, x, y, z);
-            push();
-            translate(x, y, z);
-            noStroke();
-            fill(hueVal, 90, 100);
-            sphere(15);
-            fill(hueVal, 90, 100, 30);
-            sphere(30);
-            pop();
-            noStroke();
-            fill(hueVal, 60, 100, 10); 
-            sphere(100);
+        const canvasContainer = document.getElementById('quantum-canvas');
+        const slider = document.getElementById('q-slider');
+        const probText = document.getElementById('prob-text');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+        const camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.z = 5;
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        canvasContainer.appendChild(renderer.domElement);
+        const particleCount = 2000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const originalPositions = new Float32Array(particleCount * 3); 
+        const colors = new Float32Array(particleCount * 3);
+        const color0 = new THREE.Color(0xff0055); 
+        const color1 = new THREE.Color(0x00ffff); 
+        for (let i = 0; i < particleCount; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            const r = 2.5; 
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+            positions[i * 3] = x;
+            positions[i * 3 + 1] = y;
+            positions[i * 3 + 2] = z;
+            originalPositions[i * 3] = x;
+            originalPositions[i * 3 + 1] = y;
+            originalPositions[i * 3 + 2] = z;
+            colors[i * 3] = 0.5;
+            colors[i * 3 + 1] = 0.0;
+            colors[i * 3 + 2] = 0.5;
         }
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const material = new THREE.PointsMaterial({
+            size: 0.08,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        const particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+        const coreGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, wireframe: true });
+        const coreSphere = new THREE.Mesh(coreGeometry, coreMaterial);
+        scene.add(coreSphere);
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+            const val = parseFloat(slider.value);
+            const percent1 = Math.round(val * 100);
+            const percent0 = 100 - percent1;
+            probText.innerHTML = `<span style="color:#ff0055">${percent0}% 0</span> | <span style="color:#00ffff">${percent1}% 1</span>`;
+            particleSystem.rotation.y += 0.002;
+            particleSystem.rotation.x += 0.001;
+            coreSphere.rotation.y -= 0.005;
+            const positions = particleSystem.geometry.attributes.position.array;
+            const colors = particleSystem.geometry.attributes.color.array;
+            const uncertainty = 1 - Math.abs((val - 0.5) * 2); 
+            const tempColor = new THREE.Color().lerpColors(color0, color1, val);
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                colors[i3] = tempColor.r;
+                colors[i3 + 1] = tempColor.g;
+                colors[i3 + 2] = tempColor.b;
+                const ox = originalPositions[i3];
+                const oy = originalPositions[i3 + 1];
+                const oz = originalPositions[i3 + 2];
+                const vibration = Math.sin(time * 2 + ox * 5) * uncertainty * 0.5;
+                const pulse = Math.cos(time + oy) * uncertainty * 0.2;
+                positions[i3] = ox + (ox * vibration) + (ox * pulse);
+                positions[i3 + 1] = oy + (oy * vibration) + (oy * pulse);
+                positions[i3 + 2] = oz + (oz * vibration) + (oz * pulse);
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            particleSystem.geometry.attributes.color.needsUpdate = true;
+            const scale = 1 + (uncertainty * 0.5);
+            coreSphere.scale.set(scale, scale, scale);
+            renderer.render(scene, camera);
         }
+        window.addEventListener('resize', () => {
+            const width = canvasContainer.clientWidth;
+            const height = canvasContainer.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+        animate();
     </script>
 </body>
 </html>
