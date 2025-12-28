@@ -2,144 +2,400 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çift Yarık: Dalga mı Parçacık mı?</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <title>Çift Yarık Deneyi: Gerçekçi Fizik</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: #000;
-            color: white;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
-            cursor: crosshair;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
-        #hud {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            pointer-events: none;
-            z-index: 10;
-        }
-        h1 {
-            font-size: 2rem;
-            margin: 0;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .status {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 10px;
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-        .wave-text { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
-        .particle-text { color: #ff3300; text-shadow: 0 0 10px #ff3300; }
-        .instruction {
+
+        #ui-container {
             position: absolute;
             top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(10, 10, 10, 0.95);
+            padding: 20px;
+            border: 1px solid #444;
+            border-left: 4px solid #00ffc8;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+            max-width: 320px;
+        }
+
+        h1 {
+            font-size: 16px;
+            margin: 0 0 10px 0;
+            color: #fff;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .toggle-btn {
+            background: #222;
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: inherit;
             width: 100%;
-            text-align: center;
-            color: #777;
-            font-size: 0.9rem;
-            pointer-events: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .toggle-btn:hover {
+            background: #333;
+        }
+
+        .toggle-btn.active {
+            background: #ff0040;
+            color: white;
+            border-color: #ff0040;
+            box-shadow: 0 0 15px rgba(255, 0, 64, 0.4);
+        }
+
+        .legend {
+            margin-top: 15px;
+            font-size: 12px;
+            display: grid;
+            gap: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
         }
     </style>
 </head>
 <body>
-    <div class="instruction">
-        Gözlemlemek (Parçacığa çevirmek) için EKRANA TIKILI TUTUN
+
+    <div id="ui-container">
+        <h1>QUANTUM INTERFERENCE</h1>
+        <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">
+            Görsel Fizik Simülasyonu v3.0
+        </div>
+        
+        <button id="observerBtn" class="toggle-btn" onclick="toggleObserver()">GÖZLEMCİ: KAPALI</button>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="indicator" style="background: #00ffc8;"></div>
+                <span id="statusText" style="color:#00ffc8">DALGA (Girişim Deseni)</span>
+            </div>
+        </div>
+        <p style="font-size: 10px; color: #666; margin-top: 10px;">
+            Ekranı temizlemek için 'R' tuşuna bas.
+        </p>
     </div>
-    <div id="hud">
-        <h1>Çift Yarık Simülasyonu</h1>
-        <div id="statusLabel" class="status wave-text">DURUM: DALGA (OLASILIK)</div>
-    </div>
+
     <script>
+        // --- AYARLAR ---
         let particles = [];
-        const numParticles = 2000; 
-        let flowFieldScale = 0.01; 
+        let wallX, screenX;
+        let slitY1, slitY2;
+        let slitHeight = 8; 
+        let observerActive = false;
+        
+        // Ekran verisi (Histogram)
+        let screenBins = [];
+        let maxBinVal = 0;
+
+        // --- FİZİK SABİTLERİ (DÜZELTİLDİ) ---
+        const PARTICLE_SPEED = 7;
+        
+        // Dalga boyunu arttırdık. Bu, girişim desenindeki çizgilerin arasını açar.
+        // Böylece siyah boşluklar daha belirgin olur.
+        const WAVELENGTH = 24; 
+        
+        // Yarıklar arası mesafeyi biraz kıstık.
+        const SLIT_DISTANCE = 90; 
+
         function setup() {
             createCanvas(windowWidth, windowHeight);
-            for (let i = 0; i < numParticles; i++) {
-                particles.push(new QuantumParticle());
-            }
-            background(0);
+            initDimensions();
+            screenBins = new Array(height).fill(0);
         }
-        function draw() {
-            if (mouseIsPressed) {
-                background(0, 0, 0, 255); 
-                updateLabel(true);
-            } 
-            else {
-                background(0, 0, 0, 20); 
-                updateLabel(false);
-            }
-            for (let p of particles) {
-                p.update(mouseIsPressed);
-                p.show(mouseIsPressed);
-            }
+
+        function initDimensions() {
+            wallX = width * 0.25; 
+            screenX = width * 0.95;
+            let center = height / 2;
+            slitY1 = center - SLIT_DISTANCE / 2;
+            slitY2 = center + SLIT_DISTANCE / 2;
         }
-        class QuantumParticle {
-            constructor() {
-                this.pos = createVector(random(width), random(height));
-                this.vel = createVector(0, 0);
-                this.acc = createVector(0, 0);
-                this.maxSpeed = 4;
-                this.prevPos = this.pos.copy();
-            }
-            update(isObserved) {
-                if (isObserved) {
-                    let gravity = createVector(0, 0.5);
-                    this.acc.add(gravity);
-                    this.vel.x += random(-0.1, 0.1);
-                } else {
-                    let angle = noise(this.pos.x * flowFieldScale, this.pos.y * flowFieldScale, frameCount * 0.005) * TWO_PI * 4;
-                    let flowVector = p5.Vector.fromAngle(angle);
-                    flowVector.setMag(1); 
-                    this.acc.add(flowVector);
-                }
-                this.vel.add(this.acc);
-                this.vel.limit(this.maxSpeed);
-                this.pos.add(this.vel);
-                this.acc.mult(0); 
-                this.edges();
-            }
-            show(isObserved) {
-                if (isObserved) {
-                    stroke(255, 50, 0); 
-                    strokeWeight(4);
-                    point(this.pos.x, this.pos.y);
-                    this.prevPos = this.pos.copy();
-                } else {
-                    stroke(0, 255, 255, 50); 
-                    strokeWeight(1);
-                    line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y);
-                    this.prevPos = this.pos.copy();
-                }
-            }
-            edges() {
-                if (this.pos.x > width) { this.pos.x = 0; this.prevPos = this.pos.copy(); }
-                if (this.pos.x < 0) { this.pos.x = width; this.prevPos = this.pos.copy(); }
-                if (this.pos.y > height) { this.pos.y = 0; this.prevPos = this.pos.copy(); }
-                if (this.pos.y < 0) { this.pos.y = height; this.prevPos = this.pos.copy(); }
-            }
-        }
-        function updateLabel(isObserved) {
-            const label = document.getElementById('statusLabel');
-            if (isObserved) {
-                label.innerText = "DURUM: PARÇACIK (MADDE)";
-                label.className = "status particle-text";
-            } else {
-                label.innerText = "DURUM: DALGA (OLASILIK)";
-                label.className = "status wave-text";
-            }
-        }
+
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
-            background(0);
+            initDimensions();
+            screenBins = new Array(height).fill(0);
+            maxBinVal = 0;
+        }
+
+        function draw() {
+            background(0); 
+
+            // 1. Ortamı Çiz
+            drawEnvironment();
+
+            // 2. Gözlemciyi Çiz
+            if(observerActive) drawObserver();
+
+            // 3. Parçacık Üretimi (Hızlandırılmış)
+            for(let k=0; k<10; k++) {
+                particles.push(new Particle());
+            }
+
+            // 4. Parçacık Döngüsü
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.show();
+
+                if (p.pos.x >= screenX) {
+                    registerHit(p.pos.y);
+                    particles.splice(i, 1);
+                }
+                else if (p.dead || p.pos.y < 0 || p.pos.y > height || p.pos.x < 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 5. Sonuç Desenini Çiz
+            drawScreenPattern();
+        }
+
+        function registerHit(y) {
+            let idx = floor(y);
+            // Biraz bulanıklık ekleyerek histogramın daha yumuşak dolmasını sağlayalım
+            // Bu sayede çizgiler daha net görünür
+            if (idx >= 1 && idx < height - 1) {
+                screenBins[idx] += 1.0;
+                screenBins[idx-1] += 0.5;
+                screenBins[idx+1] += 0.5;
+                
+                if(screenBins[idx] > maxBinVal) maxBinVal = screenBins[idx];
+            }
+        }
+
+        // --- PARÇACIK SINIFI ---
+        class Particle {
+            constructor() {
+                this.pos = createVector(0, height/2);
+                
+                // Hedefleme konisi
+                let targetY = random(slitY1 - 60, slitY2 + 60);
+                let targetX = wallX;
+                
+                let dir = createVector(targetX - this.pos.x, targetY - this.pos.y);
+                dir.normalize();
+                dir.mult(PARTICLE_SPEED);
+                
+                this.vel = dir;
+                this.passedSlit = false;
+                this.dead = false;
+                this.color = color(0, 255, 200); 
+                this.size = 2;
+            }
+
+            update() {
+                this.pos.add(this.vel);
+
+                // DUVAR KONTROLÜ
+                if (!this.passedSlit && !this.dead && this.pos.x >= wallX) {
+                    
+                    let hitSlit1 = abs(this.pos.y - slitY1) <= slitHeight;
+                    let hitSlit2 = abs(this.pos.y - slitY2) <= slitHeight;
+
+                    if (hitSlit1 || hitSlit2) {
+                        this.passedSlit = true;
+                        
+                        // --- KRİTİK DÜZELTME: KONUM HİZALAMA ---
+                        // Parçacık yarıktan geçtiği an, Y konumunu yarığın tam merkezine (veya çok yakınına) çekiyoruz.
+                        // Bu, "Parçacık" modunda iki ayrı net bant oluşmasını sağlar.
+                        this.pos.y = hitSlit1 ? slitY1 + random(-2,2) : slitY2 + random(-2,2);
+                        this.pos.x = wallX + 2; // Duvarın hemen sağına koy
+
+                        let slitIndex = hitSlit1 ? 1 : 2;
+                        this.applyQuantumEffect(slitIndex);
+                        
+                    } else {
+                        this.dead = true; 
+                    }
+                }
+            }
+
+            applyQuantumEffect(slitIndex) {
+                if (observerActive) {
+                    // --- PARÇACIK MODU (Gözlemci Açık) ---
+                    // Kırmızı renk
+                    this.color = color(255, 0, 64);
+                    
+                    // Saçılma çok az olmalı ki iki ayrı bant görelim
+                    // Gaussian saçılmasını azalttım (0.05 -> 0.025)
+                    this.vel = createVector(PARTICLE_SPEED, 0);
+                    this.vel.rotate(randomGaussian(0, 0.025)); 
+
+                } else {
+                    // --- DALGA MODU (Gözlemci Kapalı) ---
+                    // Girişim deseni
+                    this.color = color(0, 255, 200, 150);
+                    
+                    // Young Girişim Formülü
+                    let angle = calculateInterferenceAngle();
+                    this.vel = createVector(PARTICLE_SPEED, 0);
+                    this.vel.rotate(angle);
+                }
+            }
+
+            show() {
+                if(this.dead) return;
+                noStroke();
+                fill(this.color);
+                ellipse(this.pos.x, this.pos.y, this.size);
+            }
+        }
+
+        // --- FİZİK MOTORU ---
+        function calculateInterferenceAngle() {
+            let found = false;
+            let theta = 0;
+            
+            // Maksimum tarama açısını sınırladım, böylece performans artar ve merkez odaklı olur
+            let maxAngle = PI/3.5;
+
+            while(!found) {
+                theta = random(-maxAngle, maxAngle); 
+                
+                // 1. Girişim (Interference)
+                // WAVELENGTH değeri arttığı için beta daha yavaş değişir -> Saçaklar genişler
+                let beta = (PI * SLIT_DISTANCE * sin(theta)) / WAVELENGTH;
+                let interference = pow(cos(beta), 2);
+
+                // 2. Kırınım (Diffraction)
+                let alpha = (PI * slitHeight * sin(theta)) / WAVELENGTH;
+                let diffraction = 1;
+                if (alpha !== 0) diffraction = pow(sin(alpha) / alpha, 2);
+
+                // Olasılığı biraz daha keskinleştirmek için karesini alabiliriz (kontrast artırır)
+                let totalProb = interference * diffraction;
+
+                // Rejection Sampling
+                if (random(1) < totalProb) {
+                    found = true;
+                }
+            }
+            return theta;
+        }
+
+        function drawEnvironment() {
+            stroke(80);
+            strokeWeight(3);
+            
+            line(wallX, 0, wallX, slitY1 - slitHeight);
+            line(wallX, slitY1 + slitHeight, wallX, slitY2 - slitHeight);
+            line(wallX, slitY2 + slitHeight, wallX, height);
+            
+            stroke(observerActive ? '#ff0040' : '#00ffc8');
+            strokeWeight(1);
+            noFill();
+            rect(wallX - 2, slitY1 - slitHeight, 4, slitHeight*2);
+            rect(wallX - 2, slitY2 - slitHeight, 4, slitHeight*2);
+
+            stroke(40);
+            line(screenX, 0, screenX, height);
+        }
+
+        function drawObserver() {
+            push();
+            translate(wallX - 30, height/2);
+            stroke(255, 0, 64);
+            noFill();
+            
+            beginShape();
+            vertex(-15, 0);
+            bezierVertex(-5, -10, 5, -10, 15, 0);
+            bezierVertex(5, 10, -5, 10, -15, 0);
+            endShape();
+            fill(255, 0, 64);
+            circle(0,0,6);
+            
+            stroke(255, 0, 64, 100);
+            line(15, 0, 30, -SLIT_DISTANCE/2);
+            line(15, 0, 30, SLIT_DISTANCE/2);
+            pop();
+        }
+
+        function drawScreenPattern() {
+            noStroke();
+            let normalization = maxBinVal > 0 ? maxBinVal : 1;
+
+            // Her piksel için çizim yaparsak daha pürüzsüz görünür
+            for (let y = 0; y < height; y++) {
+                let intensity = screenBins[y];
+                if (intensity > 0) {
+                    // Yoğunluk görselleştirmesini biraz kısalttık, ekrana sığsın
+                    let barWidth = map(intensity, 0, normalization, 0, 150);
+                    
+                    if (observerActive) {
+                        fill(255, 20, 80, 220); 
+                    } else {
+                        // Girişim deseni için biraz daha parlak renk
+                        fill(0, 255, 200, 220);
+                    }
+                    
+                    rect(screenX, y, barWidth, 1);
+                }
+            }
+        }
+
+        function toggleObserver() {
+            observerActive = !observerActive;
+            screenBins = new Array(height).fill(0);
+            maxBinVal = 0;
+            
+            let btn = document.getElementById('observerBtn');
+            let status = document.getElementById('statusText');
+            let indicator = document.querySelector('.indicator');
+
+            if(observerActive) {
+                btn.innerText = "GÖZLEMCİ: AÇIK";
+                btn.classList.add('active');
+                status.innerText = "PARÇACIK (Çöküş)";
+                status.style.color = "#ff0040";
+                indicator.style.background = "#ff0040";
+            } else {
+                btn.innerText = "GÖZLEMCİ: KAPALI";
+                btn.classList.remove('active');
+                status.innerText = "DALGA (Girişim Deseni)";
+                status.style.color = "#00ffc8";
+                indicator.style.background = "#00ffc8";
+            }
+        }
+
+        function keyPressed() {
+            if (key === 'r' || key === 'R') {
+                screenBins = new Array(height).fill(0);
+                maxBinVal = 0;
+            }
         }
     </script>
 </body>
